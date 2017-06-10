@@ -21,7 +21,11 @@ public class LogUtils {
      * 推荐在Application中初始化,调用LogUtils.initIsDeBug(BuildConfig.DEBUG)
      */
     public static void initIsDeBug(boolean b) {
-        ISDEBUG = b;
+        allowD = allowE = allowI = allowV = allowW = allowWtf = ISDEBUG = b;
+    }
+
+    public static boolean isISDEBUG() {
+        return ISDEBUG;
     }
 
     public static boolean allowD = ISDEBUG;
