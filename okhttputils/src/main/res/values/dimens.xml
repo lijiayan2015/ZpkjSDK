@@ -1,0 +1,7 @@
+<resources>
+    <dimen name="tabbar_height">48dip</dimen>
+    <dimen name="tabbar_textSize">11sp</dimen>
+    <dimen name="main_margin_left">10dp</dimen>
+    <dimen name="nav_back_text_size">16sp</dimen>
+    <dimen name="nav_title_text_size">18sp</dimen>
+</resources>
