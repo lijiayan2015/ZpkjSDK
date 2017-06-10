@@ -1,4 +1,4 @@
-package com.zpkj.tools.LogUtils;
+package com.zpkj.tools.statusbarUtils;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -9,7 +9,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
-import com.zpkj.tools.LogUtils.statusbarapi.SystemBarTintManager;
+import com.zpkj.tools.statusbarUtils.statusbarapi.SystemBarTintManager;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

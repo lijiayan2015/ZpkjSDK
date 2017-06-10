@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.zpkj.tools.LogUtils.statusbarapi;
+package com.zpkj.tools.statusbarUtils.statusbarapi;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;

@@ -9,7 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
-import com.zpkj.tools.LogUtils.StatusBarUtils;
+import com.zpkj.tools.statusbarUtils.StatusBarUtils;
 import com.zpkj.tools.R;
 import com.zpkj.tools.view.Navigation;
 

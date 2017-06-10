@@ -1,4 +1,4 @@
-package com.zpkj.tools.LogUtils.statusbarapi;
+package com.zpkj.tools.statusbarUtils.statusbarapi;
 
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
