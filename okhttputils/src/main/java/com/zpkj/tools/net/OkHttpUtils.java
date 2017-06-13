@@ -500,5 +500,21 @@ public class OkHttpUtils {
         });
     }
 
-
+    /**
+     * 取消请求
+     *
+     * @param callList
+     */
+    public static void cancelRequest(List<Call> callList) {
+        try {
+            if (callList != null) {
+                for (int i = 0; i < callList.size(); i++) {
+                    callList.get(i).cancel();
+                }
+                callList.clear();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
