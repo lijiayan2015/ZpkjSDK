@@ -9,7 +9,9 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.internal.$Gson$Types;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
@@ -19,6 +21,9 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.Interceptor;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -154,7 +159,6 @@ public class OkHttpUtils {
         public abstract void onSuccess(T respose);
 
         /**
-         *
          * @param e
          */
         public abstract void onFailure(Exception e);
@@ -332,6 +336,32 @@ public class OkHttpUtils {
      * @param callBack request callback not null
      */
     public static void doPost(@NonNull String url, @NonNull List<Param> params, @NonNull List<Param> headers, @NonNull ResultCallBack callBack) {
+        getInstance().postRequest(url, params, headers, callBack);
+    }
+
+    private void postRequest(String url, List<Param> params, List<Param> headers, ResultCallBack callBack) {
+        deliverResultCallBack(callBack, buildPostRequest(url, params, headers));
+    }
+
+    /**
+     * @param url
+     * @param params
+     * @param headers
+     * @return
+     */
+    private Request buildPostRequest(String url, @NonNull List<Param> params, @NonNull List<Param> headers) {
+        FormBody.Builder builder = new FormBody.Builder();
+        for (Param p : params) {
+            if (paramsIsNull(p)) continue;
+            builder.add(p.key, p.value);
+        }
+        RequestBody requestBody = builder.build();
+        Headers.Builder buildHeader = new Headers.Builder();
+        for (Param p : headers) {
+            if (paramsIsNull(p)) continue;
+            buildHeader.add(p.key, p.value);
+        }
+        return new Request.Builder().url(url).post(requestBody).headers(buildHeader.build()).build();
     }
 
     /**
@@ -344,6 +374,32 @@ public class OkHttpUtils {
      * @param callBack upload callback
      */
     public static void doUpLoadFile(@NonNull String url, @NonNull File file, List<Param> params, List<Param> headers, @NonNull ResultCallBack callBack) {
+        getInstance().postImageFile(url, file, callBack, params, headers);
+    }
+
+    private void postImageFile(String url, File file, ResultCallBack callBack, List<Param> params, List<Param> headers) {
+        deliverResultCallBack(callBack, buildPostReqeust(url, file, params, headers));
+    }
+
+    private Request buildPostReqeust(String url, File file, List<Param> params, List<Param> headers) {
+        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+        for (Param param : params) {
+            if (paramsIsNull(param))
+                continue;
+            builder.addFormDataPart(param.key, param.value);
+        }
+        builder.addPart(Headers.of("Content-Disposition", "form-data;" +
+                        " name=\"file\";filename=\"" + file.getName() + "\""),
+                RequestBody.create(MediaType.parse("*/*"), file));
+        RequestBody requestBody = builder.build();
+
+        Headers.Builder buildHeader = new Headers.Builder();
+        for (Param p : headers) {
+            if (paramsIsNull(p))
+                continue;
+            buildHeader.add(p.key, p.value);
+        }
+        return new Request.Builder().url(url).post(requestBody).headers(buildHeader.build()).build();
     }
 
     /**
@@ -362,7 +418,87 @@ public class OkHttpUtils {
                                       List<Param> params,
                                       List<Param> headers,
                                       @NonNull ResultCallBack callBack) {
-
+        getInstance().postDownFile(url, filePath, fileName, callBack, params, headers);
     }
+
+    private void postDownFile(String url, String filePath, String fileName, ResultCallBack callBack, List<Param> params, List<Param> headers) {
+        deliverDownResultCallBack(filePath, fileName, callBack, buildPostRequest(url, params, headers));
+    }
+
+    private void deliverDownResultCallBack(final String filePath, final String fileName, final ResultCallBack callBack, Request request) {
+        OkHttpClient.Builder builder = ljyOkHttpClient.newBuilder();
+        Interceptor interceptor = new Interceptor() {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
+                Response response = chain.proceed(chain.request());
+
+                return response.newBuilder().body(response.body()).build();
+            }
+        };
+        builder.networkInterceptors().add(interceptor);
+        final Call call = builder.build().newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                callBack.downFileDone(false);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) {
+                if (response.isSuccessful()) {
+                    File parent = new File(filePath);
+                    if (!parent.exists()) {
+                        parent.mkdirs();
+                    }
+                    File file = new File(parent, fileName);
+                    if (file.exists()) {
+                        file.delete();
+                    }
+                    //读取文件
+                    InputStream is = null;
+                    byte[] buf = new byte[2048];
+                    int len = 0;
+                    FileOutputStream fos = null;
+                    is = response.body().byteStream();
+                    try {
+                        long total = response.body().contentLength();
+                        fos = new FileOutputStream(file);
+                        long sum = 0;
+                        while ((len = is.read(buf)) != -1) {
+                            fos.write(buf, 0, len);
+                            sum += len;
+                            int progress = (int) ((sum * 1.0 / total) * 100);
+                            Log.d("DownLoadProgress:", "progress:" + progress);
+                            callBack.downLoading(progress);
+                        }
+                        fos.flush();
+                        //下载成功
+                        Log.d("DownLoadFile", "downLoad Done");
+                        callBack.downFileDone(true);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Log.d("DownLoadFile", "downLoad Fail");
+                        callBack.downFileDone(false);
+                    } finally {
+                        if (is != null) {
+                            try {
+                                is.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        if (fos != null) {
+                            try {
+                                fos.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                } else callBack.downFileDone(false);
+            }
+        });
+    }
+
 
 }
