@@ -22,10 +22,13 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     private GestureDetector myDectector;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        initGestureDetector();
+        if (canSlideBack()) {
+            initGestureDetector();
+        }
         initContentView(R.layout.activity_base);
         StatusBarUtils.initSystemBar(this, getTranslucentColorResId());
         nav = (Navigation) findViewById(R.id.nav);
@@ -38,6 +41,15 @@ public abstract class BaseActivity extends AppCompatActivity {
         });
 
 
+    }
+
+    /**
+     * 是否可以左滑返回
+     *
+     * @return
+     */
+    protected boolean canSlideBack() {
+        return true;
     }
 
     protected Navigation getNav() {
@@ -66,9 +78,8 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return myDectector.onTouchEvent(event);
+        return canSlideBack()?myDectector.onTouchEvent(event):super.onTouchEvent(event);
     }
-
 
     protected void navFinish() {
         finish();
