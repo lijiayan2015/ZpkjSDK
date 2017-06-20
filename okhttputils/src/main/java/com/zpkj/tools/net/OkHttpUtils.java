@@ -3,6 +3,7 @@ package com.zpkj.tools.net;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.gson.JsonSyntaxException;
@@ -28,6 +29,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.Buffer;
+import okio.BufferedSink;
+import okio.ForwardingSink;
+import okio.Sink;
 
 /**
  * @Email:lijiayan_mail@163.com
@@ -392,8 +397,8 @@ public class OkHttpUtils {
                         " name=\"file\";filename=\"" + file.getName() + "\""),
                 RequestBody.create(MediaType.parse("*/*"), file));
         RequestBody requestBody = builder.build();
-
         Headers.Builder buildHeader = new Headers.Builder();
+
         for (Param p : headers) {
             if (paramsIsNull(p))
                 continue;
@@ -401,6 +406,103 @@ public class OkHttpUtils {
         }
         return new Request.Builder().url(url).post(requestBody).headers(buildHeader.build()).build();
     }
+
+//==========================================上传监听器的========================================//
+
+    /**
+     * upload file
+     *
+     * @param url      upload url
+     * @param file     upload file
+     * @param params   upload params
+     * @param headers  upload headers
+     * @param callBack upload callback
+     */
+    public static void doUpLoadFile(@NonNull String url, @NonNull File file, List<Param> params, List<Param> headers, @NonNull ResultCallBack callBack, UploadListener uploadListener) {
+        getInstance().postImageFile(url, file, callBack, params, headers, uploadListener);
+    }
+
+
+    private void postImageFile(String url, File file, ResultCallBack callBack, List<Param> params, List<Param> headers, UploadListener uploadListener) {
+        deliverResultCallBack(callBack, buildPostReqeust(url, file, params, headers, uploadListener));
+    }
+
+
+    private Request buildPostReqeust(String url, File file, List<Param> params, List<Param> headers, UploadListener uploadListener) {
+        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+        for (Param param : params) {
+            if (paramsIsNull(param))
+                continue;
+            builder.addFormDataPart(param.key, param.value);
+        }
+        builder.addPart(Headers.of("Content-Disposition", "form-data;" +
+                        " name=\"file\";filename=\"" + file.getName() + "\""),
+                RequestBody.create(MediaType.parse("*/*"), file));
+        RequestBody requestBody = builder.build();
+        LjyRequestBody ljyRequestBody = new LjyRequestBody(requestBody, uploadListener);
+        Headers.Builder buildHeader = new Headers.Builder();
+
+        for (Param p : headers) {
+            if (paramsIsNull(p))
+                continue;
+            buildHeader.add(p.key, p.value);
+        }
+        return new Request.Builder().url(url).post(ljyRequestBody).headers(buildHeader.build()).build();
+    }
+
+    public interface UploadListener {
+        void progress(float progress);
+    }
+
+    private final class LjyRequestBody extends RequestBody {
+
+        private RequestBody requestBody;
+
+        private UploadListener uploadListener;
+
+        public LjyRequestBody(RequestBody requestBody, UploadListener uploadListener) {
+            this.requestBody = requestBody;
+            this.uploadListener = uploadListener;
+        }
+
+        @Nullable
+        @Override
+        public MediaType contentType() {
+            return requestBody.contentType();
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            Sink mSink = sink(sink);
+            requestBody.writeTo((BufferedSink) mSink);
+        }
+
+        private Sink sink(Sink sink) {
+            return new ForwardingSink(sink) {
+                //当前写入字节数
+                long bytesWritten = 0L;
+                //总字节长度，避免多次调用contentLength()方法
+                long contentLength = 0L;
+
+                @Override
+                public void write(Buffer source, long byteCount) throws IOException {
+                    super.write(source, byteCount);
+                    if (contentLength == 0) {
+                        //获得contentLength的值，后续不再调用
+                        contentLength = contentLength();
+                    }
+                    //增加当前写入的字节数
+                    bytesWritten += byteCount;
+                    //回调
+                    float progress = bytesWritten * 1.0f / contentLength;
+                    if (uploadListener != null) {
+                        uploadListener.progress(progress);
+                    }
+                }
+            };
+        }
+    }
+    //==========================================上传监听器的========================================//
 
     /**
      * download file
