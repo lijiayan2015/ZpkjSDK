@@ -429,9 +429,10 @@ public class OkHttpUtils {
         MultipartBody.Builder builder = new MultipartBody.Builder();
 
         builder.addFormDataPart("file", file.getName(), createCustomRequestBody(MultipartBody.FORM, file, uploadListener));
-
+        builder.addPart(Headers.of("Content-Disposition", "form-data;" +
+                        " name=\"file\";filename=\"" + file.getName() + "\""),
+                RequestBody.create(MediaType.parse("*/*"), file));
         RequestBody requestBody = builder.build();
-
         Request request = new Request.Builder()
                 .url(url) //地址
                 .post(requestBody)
