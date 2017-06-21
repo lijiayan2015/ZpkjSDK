@@ -460,7 +460,7 @@ public class OkHttpUtils {
                     //sink.writeAll(source);
                     Buffer buf = new Buffer();
                     Long remaining = contentLength();
-                    for (long readCount; (readCount = source.read(buf, 2048)) != -1; ) {
+                    for (long readCount; (readCount = source.read(buf, 1024*1024)) != -1; ) {
                         sink.write(buf, readCount);
                         listener.onProgress(contentLength(), remaining -= readCount, remaining == 0);
 
