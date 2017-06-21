@@ -3,7 +3,6 @@ package com.zpkj.tools.net;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.gson.JsonSyntaxException;
@@ -415,86 +414,66 @@ public class OkHttpUtils {
      *
      * @param url      upload url
      * @param file     upload file
-     * @param params   upload params
-     * @param headers  upload headers
      * @param callBack upload callback
      */
-    @Describ("上传文件,并显示上传的进度条")
-    public static void doUpLoadFile(@NonNull String url, @NonNull File file, List<Param> params, List<Param> headers, @NonNull ResultCallBack callBack, UploadListener uploadListener) {
-        getInstance().postImageFile(url, file, callBack, params, headers, uploadListener);
+    public static void doUpLoadFile(@NonNull String url, @NonNull File file, @NonNull ResultCallBack callBack, ProgressListener uploadListener) {
+        getInstance().postImageFile(url, file, callBack, uploadListener);
     }
 
-    private void postImageFile(String url, File file, ResultCallBack callBack, List<Param> params, List<Param> headers, UploadListener uploadListener) {
-        deliverResultCallBack(callBack, buildPostReqeust(url, file, params, headers, uploadListener));
+    private void postImageFile(String url, File file, ResultCallBack callBack, ProgressListener uploadListener) {
+        deliverResultCallBack(callBack, buildPostReqeust(url, file, uploadListener));
     }
 
-    private Request buildPostReqeust(String url, File file, List<Param> params, List<Param> headers, UploadListener uploadListener) {
-        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
-        for (Param param : params) {
-            if (paramsIsNull(param))
-                continue;
-            builder.addFormDataPart(param.key, param.value);
-        }
-        builder.addPart(Headers.of("Content-Disposition", "form-data;" +
-                        " name=\"file\";filename=\"" + file.getName() + "\""),
-                RequestBody.create(MediaType.parse("*/*"), file));
+    private Request buildPostReqeust(String url, File file, ProgressListener uploadListener) {
+
+        MultipartBody.Builder builder = new MultipartBody.Builder();
+
+        builder.addFormDataPart("file", file.getName(), createCustomRequestBody(MultipartBody.FORM, file, uploadListener));
+
         RequestBody requestBody = builder.build();
-        LjyRequestBody ljyRequestBody = new LjyRequestBody(requestBody, uploadListener, file);
-        Headers.Builder buildHeader = new Headers.Builder();
 
-        for (Param p : headers) {
-            if (paramsIsNull(p))
-                continue;
-            buildHeader.add(p.key, p.value);
-        }
-        return new Request.Builder().url(url).post(ljyRequestBody).headers(buildHeader.build()).build();
+        Request request = new Request.Builder()
+                .url(url) //地址
+                .post(requestBody)
+                .build();
+        return request;
     }
 
 
-    @Describ("包装并重写RequestBody中的writeTo()方法")
-    private final class LjyRequestBody extends RequestBody {
-
-        private RequestBody requestBody;
-        private UploadListener listener;
-        private File file;
-
-        public LjyRequestBody(RequestBody requestBody, UploadListener listener, File file) {
-            this.requestBody = requestBody;
-            this.listener = listener;
-            this.file = file;
-        }
-
-        @Nullable
-        @Override
-        public MediaType contentType() {
-            return requestBody.contentType();
-        }
-
-        @Override
-        public void writeTo(BufferedSink sink) throws IOException {
-            Source source;
-            try {
-                source = Okio.source(file);
-                //sink.writeAll(source);
-                Buffer buf = new Buffer();
-                long len = contentLength();
-                long progress = 0l;
-                for (long readCount; (readCount = source.read(buf, 2048)) != -1; ) {
-                    sink.write(buf, readCount);
-                    progress += readCount;
-                    if (listener != null) {
-                        listener.progress((progress * 1.0f) / len);
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+    public static RequestBody createCustomRequestBody(final MediaType contentType, final File file, final ProgressListener listener) {
+        return new RequestBody() {
+            @Override
+            public MediaType contentType() {
+                return contentType;
             }
-        }
+
+            @Override
+            public long contentLength() {
+                return file.length();
+            }
+
+            @Override
+            public void writeTo(BufferedSink sink) throws IOException {
+                Source source;
+                try {
+                    source = Okio.source(file);
+                    //sink.writeAll(source);
+                    Buffer buf = new Buffer();
+                    Long remaining = contentLength();
+                    for (long readCount; (readCount = source.read(buf, 2048)) != -1; ) {
+                        sink.write(buf, readCount);
+                        listener.onProgress(contentLength(), remaining -= readCount, remaining == 0);
+
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
     }
 
-    @Describ("上传进度监听器")
-    public interface UploadListener {
-        void progress(float progress);
+    interface ProgressListener {
+        void onProgress(long totalBytes, long remainingBytes, boolean done);
     }
 
     //*********************************************************************************************
