@@ -472,7 +472,7 @@ public class OkHttpUtils {
         };
     }
 
-    interface ProgressListener {
+    public interface ProgressListener {
         void onProgress(long totalBytes, long remainingBytes, boolean done);
     }
 
