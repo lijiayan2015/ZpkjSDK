@@ -68,7 +68,7 @@ public class OkHttpUtils {
     /**
      * 连接超时
      */
-    public static long DEFALUT_TIMEOUT = 60;
+    public static long DEFALUT_TIMEOUT = 10;
 
     /**
      * 读超时
