@@ -3,6 +3,7 @@ package com.zpkj.tools.net;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.google.gson.JsonSyntaxException;
@@ -28,6 +29,10 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okio.Buffer;
+import okio.BufferedSink;
+import okio.Okio;
+import okio.Source;
 
 /**
  * @Email:lijiayan_mail@163.com
@@ -392,6 +397,7 @@ public class OkHttpUtils {
                         " name=\"file\";filename=\"" + file.getName() + "\""),
                 RequestBody.create(MediaType.parse("*/*"), file));
         RequestBody requestBody = builder.build();
+
         Headers.Builder buildHeader = new Headers.Builder();
 
         for (Param p : headers) {
@@ -402,6 +408,96 @@ public class OkHttpUtils {
         return new Request.Builder().url(url).post(requestBody).headers(buildHeader.build()).build();
     }
 
+    //*********************************************************************************************
+
+    /**
+     * upload file
+     *
+     * @param url      upload url
+     * @param file     upload file
+     * @param params   upload params
+     * @param headers  upload headers
+     * @param callBack upload callback
+     */
+    @Describ("上传文件,并显示上传的进度条")
+    public static void doUpLoadFile(@NonNull String url, @NonNull File file, List<Param> params, List<Param> headers, @NonNull ResultCallBack callBack, UploadListener uploadListener) {
+        getInstance().postImageFile(url, file, callBack, params, headers, uploadListener);
+    }
+
+    private void postImageFile(String url, File file, ResultCallBack callBack, List<Param> params, List<Param> headers, UploadListener uploadListener) {
+        deliverResultCallBack(callBack, buildPostReqeust(url, file, params, headers, uploadListener));
+    }
+
+    private Request buildPostReqeust(String url, File file, List<Param> params, List<Param> headers, UploadListener uploadListener) {
+        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+        for (Param param : params) {
+            if (paramsIsNull(param))
+                continue;
+            builder.addFormDataPart(param.key, param.value);
+        }
+        builder.addPart(Headers.of("Content-Disposition", "form-data;" +
+                        " name=\"file\";filename=\"" + file.getName() + "\""),
+                RequestBody.create(MediaType.parse("*/*"), file));
+        RequestBody requestBody = builder.build();
+        LjyRequestBody ljyRequestBody = new LjyRequestBody(requestBody, uploadListener, file);
+        Headers.Builder buildHeader = new Headers.Builder();
+
+        for (Param p : headers) {
+            if (paramsIsNull(p))
+                continue;
+            buildHeader.add(p.key, p.value);
+        }
+        return new Request.Builder().url(url).post(ljyRequestBody).headers(buildHeader.build()).build();
+    }
+
+
+    @Describ("包装并重写RequestBody中的writeTo()方法")
+    private final class LjyRequestBody extends RequestBody {
+
+        private RequestBody requestBody;
+        private UploadListener listener;
+        private File file;
+
+        public LjyRequestBody(RequestBody requestBody, UploadListener listener, File file) {
+            this.requestBody = requestBody;
+            this.listener = listener;
+            this.file = file;
+        }
+
+        @Nullable
+        @Override
+        public MediaType contentType() {
+            return requestBody.contentType();
+        }
+
+        @Override
+        public void writeTo(BufferedSink sink) throws IOException {
+            Source source;
+            try {
+                source = Okio.source(file);
+                //sink.writeAll(source);
+                Buffer buf = new Buffer();
+                long len = contentLength();
+                long progress = 0l;
+                for (long readCount; (readCount = source.read(buf, 2048)) != -1; ) {
+                    sink.write(buf, readCount);
+                    progress += readCount;
+                    if (listener != null) {
+                        listener.progress((progress * 1.0f) / len);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Describ("上传进度监听器")
+    public interface UploadListener {
+        void progress(float progress);
+    }
+
+    //*********************************************************************************************
 
     /**
      * download file
