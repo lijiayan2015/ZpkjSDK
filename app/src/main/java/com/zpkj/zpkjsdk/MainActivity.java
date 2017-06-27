@@ -1,19 +1,19 @@
 package com.zpkj.zpkjsdk;
 
-import android.graphics.Color;
+import android.app.Activity;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.View;
 
 import com.zpkj.tools.LogUtils.LogUtils;
-import com.zpkj.tools.activity.BaseActivity;
 import com.zpkj.tools.net.OkHttpUtils;
+import com.zpkj.tools.statusbarUtils.StatusBarUtils;
 import com.zpkj.tools.view.CustomProgressDialog;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends Activity {
 
     private CustomProgressDialog customProgressDialog;
 
@@ -22,6 +22,7 @@ public class MainActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        StatusBarUtils.setTranslucentStatus(this, true);
         OkHttpUtils instance = OkHttpUtils.getInstance();
         LogUtils.e(instance.getClass().getSimpleName());
         initDialog();
@@ -57,7 +58,7 @@ public class MainActivity extends BaseActivity {
         customProgressDialog.show();
     }
 
-    @Override
+    /*@Override
     protected int getTranslucentColorResId() {
         return R.color.navigation_color;
     }
@@ -65,7 +66,7 @@ public class MainActivity extends BaseActivity {
     @Override
     protected int getNavColor() {
         return Color.parseColor("#242424");
-    }
+    }*/
 
 
     private void testGet(String url) {

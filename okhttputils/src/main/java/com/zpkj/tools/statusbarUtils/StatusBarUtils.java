@@ -4,11 +4,14 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.graphics.Color;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 
+import com.zpkj.tools.statusbarUtils.statusbarapi.StatusBarCompatKitKat;
+import com.zpkj.tools.statusbarUtils.statusbarapi.StatusBarCompatLollipop;
 import com.zpkj.tools.statusbarUtils.statusbarapi.SystemBarTintManager;
 
 import java.lang.reflect.Field;
@@ -104,8 +107,7 @@ public class StatusBarUtils {
 
 
     @TargetApi(19)
-
-    private static void setTranslucentStatus(Activity activity, boolean on) {
+    public static void setTranslucentStatus(Activity activity, boolean on) {
         Window win = activity.getWindow();
         WindowManager.LayoutParams winParams = win.getAttributes();
         final int bits = WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
@@ -116,7 +118,17 @@ public class StatusBarUtils {
         }
         win.setAttributes(winParams);
     }
-
+    /**
+     * change to full screen mode
+     * @param hideStatusBarBackground hide status bar alpha Background when SDK > 21, true if hide it
+     */
+    public static void translucentStatusBar(@NonNull Activity activity, boolean hideStatusBarBackground) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            StatusBarCompatLollipop.translucentStatusBar(activity, hideStatusBarBackground);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            StatusBarCompatKitKat.translucentStatusBar(activity);
+        }
+    }
 
     /**
      * 修改状态栏为全透明

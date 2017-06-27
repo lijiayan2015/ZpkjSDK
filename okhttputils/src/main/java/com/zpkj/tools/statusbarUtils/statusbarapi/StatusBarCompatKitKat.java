@@ -21,7 +21,7 @@ import android.widget.FrameLayout;
  * Created by qiu on 8/27/16.
  */
 @TargetApi(Build.VERSION_CODES.KITKAT)
-class StatusBarCompatKitKat {
+public class StatusBarCompatKitKat {
 
     private static final String TAG_FAKE_STATUS_BAR_VIEW = "statusBarView";
     private static final String TAG_MARGIN_ADDED = "marginAdded";
@@ -134,7 +134,7 @@ class StatusBarCompatKitKat {
      * 3. removeMarginTopOfContentChild
      * 4. cancel ContentChild's fitsSystemWindow
      */
-    static void translucentStatusBar(Activity activity) {
+    public static void translucentStatusBar(Activity activity) {
         Window window = activity.getWindow();
         window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
 
