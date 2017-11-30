@@ -234,14 +234,15 @@ public class OkHttpUtils {
                     Log.e(TAG, "convert json failure");
                     e.printStackTrace();
                 }
+                
+                if (callBack != null) {
+                     callBack.requestCall(call);
+                }
 
             }
 
         });
 
-        if (callBack != null) {
-            callBack.requestCall(call);
-        }
     }
 
     private void sendFailCallBack(final ResultCallBack callBack, final IOException e) {
